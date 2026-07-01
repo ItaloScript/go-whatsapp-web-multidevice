@@ -1,0 +1,24 @@
+services:
+  whatsapp:
+    build:
+      context: .
+      dockerfile: ./docker/golang.Dockerfile
+    ports:
+      - "3099:3000"
+    volumes:
+      - whatsapp:/app/storages
+    environment:
+      - APP_BASIC_AUTH=admin:9epwcl9epwcl9epwcl
+      - APP_PORT=3000
+      - APP_DEBUG=true
+      - APP_OS=Chrome
+      - APP_ACCOUNT_VALIDATION=false
+    networks:
+      - dokploy-network
+
+volumes:
+  whatsapp:
+
+networks:
+  dokploy-network:
+    external: true
