@@ -983,13 +983,20 @@ func (service serviceSend) SendLink(ctx context.Context, request domainSend.Link
 		logrus.Debugf("Image dimensions: Square image or dimensions not available")
 	}
 
-	// Create the message
+	previewType := waE2E.ExtendedTextMessage_IMAGE
+	inlineThumbnail := metadata.JPEGThumb
+	if len(inlineThumbnail) == 0 {
+		inlineThumbnail = metadata.ImageThumb
+	}
+	// Create the message. JPEGThumbnail is intentionally tiny and low quality: it
+	// is the inline placeholder rendered while the hosted link thumbnail downloads.
 	msg := &waE2E.Message{ExtendedTextMessage: &waE2E.ExtendedTextMessage{
 		Text:          proto.String(fmt.Sprintf("%s\n%s", request.Caption, request.Link)),
 		Title:         proto.String(metadata.Title),
 		MatchedText:   proto.String(request.Link),
 		Description:   proto.String(metadata.Description),
-		JPEGThumbnail: metadata.JPEGThumb,
+		PreviewType:   &previewType,
+		JPEGThumbnail: inlineThumbnail,
 	}}
 
 	if request.BaseRequest.IsForwarded {
@@ -1006,11 +1013,9 @@ func (service serviceSend) SendLink(ctx context.Context, request domainSend.Link
 		msg.ExtendedTextMessage.ContextInfo.Expiration = proto.Uint32(uint32(*request.BaseRequest.Duration))
 	}
 
-	// If we have a thumbnail image, upload it to WhatsApp's servers
 	if len(metadata.ImageThumb) > 0 {
 		uploadedThumb, err := service.uploadMedia(ctx, client, whatsmeow.MediaLinkThumbnail, metadata.ImageThumb, dataWaRecipient)
 		if err == nil {
-			// Update the message with the uploaded thumbnail information
 			msg.ExtendedTextMessage.ThumbnailDirectPath = proto.String(uploadedThumb.DirectPath)
 			msg.ExtendedTextMessage.ThumbnailSHA256 = uploadedThumb.FileSHA256
 			msg.ExtendedTextMessage.ThumbnailEncSHA256 = uploadedThumb.FileEncSHA256
@@ -1023,7 +1028,7 @@ func (service serviceSend) SendLink(ctx context.Context, request domainSend.Link
 				msg.ExtendedTextMessage.ThumbnailWidth = metadata.Width
 			}
 		} else {
-			logrus.Warnf("Failed to upload thumbnail: %v, continue without uploaded thumbnail", err)
+			logrus.Warnf("Failed to upload thumbnail: %v, continue with inline thumbnail only", err)
 		}
 	}
 
