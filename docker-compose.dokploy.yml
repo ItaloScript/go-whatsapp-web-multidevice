@@ -5,6 +5,8 @@ services:
       dockerfile: ./docker/golang.Dockerfile
     ports:
       - "3099:3000"
+    expose:
+      - "3000"
     volumes:
       - whatsapp:/app/storages
     environment:
